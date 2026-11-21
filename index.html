@@ -1,0 +1,141 @@
+
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>우리 회사 AI 챗봇</title>
+
+<style>
+body {
+    font-family: Arial, sans-serif;
+    background: #eef2f7;
+    margin: 0;
+    padding: 20px;
+}
+.container {
+    max-width: 750px;
+    margin: auto;
+    background: white;
+    border-radius: 12px;
+    padding: 25px;
+    box-shadow: 0 4px 15px #0002;
+}
+h2 { color: #2359a5; }
+#messages {
+    height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 15px;
+    white-space: pre-wrap;
+}
+.msg {
+    padding: 12px;
+    margin: 10px 0;
+    border-radius: 8px;
+}
+.user { background: #dceaff; }
+.ai { background: #f2f3f5; }
+.input-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 15px;
+}
+input[type=text] {
+    flex: 1;
+    min-width: 0;
+    padding: 12px;
+}
+button {
+    padding: 12px 20px;
+    background: #2563eb;
+    color: white;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+}
+button:disabled { opacity: 0.5; }
+</style>
+</head>
+
+<body>
+<div class="container">
+    <h2>우리 회사 AI 업무 비서</h2>
+
+    <div id="messages"></div>
+
+    <p>
+        <label>
+            <input type="checkbox" id="webSearch">
+            인터넷 최신 정보 검색
+        </label>
+    </p>
+
+    <div class="input-row">
+        <input type="text" id="question"
+               placeholder="질문을 입력하세요">
+        <button id="sendBtn" onclick="sendChat()">
+            전송
+        </button>
+    </div>
+</div>
+
+<script>
+const messages = document.getElementById("messages");
+const question = document.getElementById("question");
+const button = document.getElementById("sendBtn");
+
+function addMessage(text, type) {
+    const div = document.createElement("div");
+    div.className = "msg " + type;
+    div.textContent = text;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+}
+
+async function sendChat() {
+    const text = question.value.trim();
+    if (!text || button.disabled) return;
+
+    addMessage("나: " + text, "user");
+    question.value = "";
+    button.disabled = true;
+
+    const loading = addMessage("답변 생성 중...", "ai");
+
+    try {
+        const response = await fetch("/chat", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+                message: text,
+                web_search:
+                    document.getElementById("webSearch").checked
+            })
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            throw new Error(data.detail || "오류 발생");
+        }
+
+        loading.textContent = "AI: " + data.answer;
+
+    } catch (error) {
+        loading.textContent = "오류: " + error.message;
+    } finally {
+        button.disabled = false;
+        question.focus();
+    }
+}
+
+question.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") sendChat();
+});
+</script>
+</body>
+</html>
